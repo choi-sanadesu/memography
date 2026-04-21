@@ -1,0 +1,11 @@
+.DS_Store
+*.log
+node_modules/
+.claude/settings.local.json
+.claude.local.md
+dist/
+build/
+.env
+.env.local
+*.swp
+*.tmp
