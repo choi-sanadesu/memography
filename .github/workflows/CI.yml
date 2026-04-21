@@ -68,8 +68,6 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/labeler@v6
-        with:
-          repo-token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
 
   tag:
     name: Tag
@@ -83,6 +81,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.MY_RELEASE_PLEASE_TOKEN }}
 
       - name: Update plugin.json version
         env:
