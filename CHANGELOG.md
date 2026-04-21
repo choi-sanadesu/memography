@@ -1,3 +1,5 @@
+## 2.0.0 (2026-04-21)
+
 # Changelog
 
 All notable changes to alexandria-keeper will be documented in this file.
