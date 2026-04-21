@@ -163,7 +163,7 @@ updated: {YYYY-MM-DD}
 - [[{path2}|{title2}]]
 ```
 
-> 엔티티 페이지에는 `medium` 필드를 두지 **않는다**. `medium`은 `type: source`에만 적용되는 소스 미디어 유형 축이며, `type: entity`에는 해당하지 않는다.
+> 엔티티 페이지에 `media` 필드가 필요하면 선택적으로 추가할 수 있다.
 
 ### 내용 작성 원칙
 

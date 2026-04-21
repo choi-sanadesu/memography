@@ -6,6 +6,34 @@ Format: [Semantic Versioning](https://semver.org/). Each release section lists c
 
 ---
 
+## [2.0.0] - 2026-04-21
+
+### Breaking Changes
+
+- `medium` → `media` 명명 변경. 기존 볼트의 `medium:` frontmatter를 `media:`로 업데이트 필요.
+  `/lint` Check 1이 `medium:` 필드를 알 수 없는 필드(stray warn)로 리포트.
+- `type` enum에서 `source` 제거. 기존 `type: source` 페이지는 `type: reference`로 업데이트 필요.
+  v1.2.0 Deprecated 섹션에서 예고된 변경.
+
+### Added
+
+- `media` null 허용 — `media: null`(또는 값 없이 키만)을 유효 상태로 처리. fail/warn 없음.
+  `/ingest` B모드에서 사용자가 분류 보류 시 `media: null`로 기록.
+
+### Changed
+
+- PR 템플릿 개선 — CHANGELOG 업데이트, 스킬 문서 업데이트, 스키마 변경 여부, Breaking change 여부 체크리스트 추가.
+- `/lint` Check 1: `type: source` → `type: reference` 조건으로 전환.
+- `/ingest` Step 5 템플릿: `type: source` → `type: reference`, `medium:` → `media:`.
+
+### Migration Guide
+
+1. 볼트 내 `type: source` 페이지를 `type: reference`로 일괄 수정.
+2. 볼트 내 `medium:` frontmatter 키를 `media:`로 일괄 수정.
+3. `/lint` 실행 후 Check 1 리포트로 잔여 위반 확인.
+
+---
+
 ## [1.2.0] - 2026-04-21
 
 ### Added

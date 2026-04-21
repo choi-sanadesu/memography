@@ -19,12 +19,11 @@ Phase 1에서 수집한 전체 관리 대상. 단 루트 `log.md`·`index.md`·`
 대상 볼트의 `CLAUDE.md §3.1`에서 다음을 읽어와 기준값으로 사용:
 
 - **필수 필드**: `title`, `type`, `domain`, `tags`, `updated` (일반적으로 이 5개, 볼트 설정 기준)
-- **`type` enum**: 예: `entity | source | concept | case | retro | note | reference`
+- **`type` enum**: 예: `entity | concept | case | retro | note | reference`
 - **`domain` enum**: 예: `enter | sana | archive | entity | project | meta`
-- **`medium` enum** (있으면, `type: source`에만 적용): 예: `article | video | image | podcast | paper`
-- **type별 조건부 필드**: 예: `type: source`는 `medium` 권장(v1.2.0 warn), v2.0.0에서 필수(fail 승격 예정)
+- **`media` enum** (있으면, 모든 type에 선택 적용): 예: `article | video | image | podcast | paper`
 
-볼트 §3.1에 특정 enum이 정의돼 있지 않으면 해당 enum **값 검증은 skip**(다른 규칙 검증은 계속). 예: §3.1에 medium 정의가 없으면 medium enum 위반 fail은 발동하지 않지만, medium 누락 warn은 `type: source` 조건부 규칙이 있으면 그대로 작동.
+볼트 §3.1에 특정 enum이 정의돼 있지 않으면 해당 enum **값 검증은 skip**(다른 규칙 검증은 계속). 예: §3.1에 media 정의가 없으면 media enum 위반 fail은 발동하지 않음.
 
 ### fail (❌, 심각한 위반)
 
@@ -37,12 +36,7 @@ Phase 1에서 수집한 전체 관리 대상. 단 루트 `log.md`·`index.md`·`
 - `domain` 값이 enum 범위 밖
 - `updated` 필드가 `YYYY-MM-DD` 형식 아님
 - `tags` 필드가 리스트 형태 아님
-- `type: source`이면서 `medium` 값이 enum 범위 밖 (볼트 §3.1에 medium enum 정의된 경우에만)
-
-### warn (⚠️, 권장 미준수 — 위반 아님)
-
-- `type: source`이면서 `medium` 필드 없음 — v1.2.0 단계적 마이그레이션(v2.0.0에서 fail 승격 예정)
-- `type ≠ source`이면서 `medium` 필드 있음 — stray field, 제거 권장
+- `media` 값이 enum 범위 밖 (볼트 §3.1에 media enum 정의된 경우에만, null은 제외)
 
 ### 리포트 항목
 
@@ -66,14 +60,6 @@ Phase 1에서 수집한 전체 관리 대상. 단 루트 `log.md`·`index.md`·`
   제안: archive (폴더 경로 `05. sanarchive/` 기반)
 ```
 
-**warn:**
-
-```
-- 02. enterwiki/wiki/음악/코펜하겐-씬.md: `medium` 권장 필드 누락 [severity: warn]
-  현재: (없음)
-  기대: article | video | image | podcast | paper (type: source 대상)
-  제안: article (source URL host 추론)
-```
 
 ---
 
