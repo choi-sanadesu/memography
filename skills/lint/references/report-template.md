@@ -50,7 +50,7 @@
 - `{path}`: {구체 경고 내용}
   - 현재: `{값 또는 "(없음)"}`
   - 기대: `{권장 범위}`
-  - 제안: `{대체값 또는 "medium 필드 추가 권장"}`
+  - 제안: `{대체값}`
 
 ---
 
@@ -136,7 +136,7 @@
 
 | 체크 | ⚠️ 기준 | ❌ 기준 |
 |---|---|---|
-| frontmatter | `medium` 누락(type=source), stray `medium`(type≠source) | 필수 필드 누락, enum 위반(type·domain·medium), 파싱 에러 |
+| frontmatter | — | 필수 필드 누락, enum 위반(type·domain·media), 파싱 에러 |
 | 깨진 링크 | ambiguous | unresolved |
 | 고립 페이지 | (항상 ℹ️, 경고 아님) | — |
 | inbox | 1+ 잔여 | — |
