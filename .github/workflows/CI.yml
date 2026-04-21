@@ -68,6 +68,8 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/labeler@v6
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
   tag:
     name: Tag
