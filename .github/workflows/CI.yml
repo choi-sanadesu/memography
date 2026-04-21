@@ -69,7 +69,7 @@ jobs:
     steps:
       - uses: actions/labeler@v6
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
 
   tag:
     name: Tag
