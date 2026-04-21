@@ -8,6 +8,8 @@ Format: [Semantic Versioning](https://semver.org/). Each release section lists c
 
 ## [1.2.0] - 2026-04-21
 
+### Changed
+- `/ingest` 이미지 파일 수용 확장 — `.png`/`.jpg`/`.jpeg`/`.webp`/`.gif` 입력 시 메타(파일명·포맷·해상도·생성일)·Claude 비전 캡션·선택 OCR을 추출해 `type: image` frontmatter의 소스 페이지 생성. 세부 절차는 `skills/ingest/references/images.md`.
 ### Added
 - `/query` — 자연어 질의 스킬. 볼트 내 엔티티·소스를 frontmatter → 백링크 → 본문 순(sequential with fallback)으로 탐색해 파일 근거와 함께 답한다. 읽기 전용, 근거 없으면 "모름" 반환으로 할루시네이션 방지.
 
