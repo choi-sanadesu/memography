@@ -14,6 +14,7 @@ Alexandria(구 memorial-vault) Obsidian 지식 볼트를 관리하는 Claude Cod
 | `ingest` | v1.1 | 소스 추가 표준 워크플로우 (URL/파일, Chrome MCP, 배치 처리) |
 | `promote` | v1 | 엔티티 승격 + 백링크 업데이트 |
 | `retro` | v1 | 회고 항목 기록 (log.md + 프로젝트 retros/) |
+| `query` | v1 | 자연어 질의 → 파일 근거 조회 (읽기 전용, frontmatter→백링크→본문 file-back) |
 
 ## 설치
 

@@ -6,6 +6,13 @@ Format: [Semantic Versioning](https://semver.org/). Each release section lists c
 
 ---
 
+## [1.2.0] - 2026-04-21
+
+### Added
+- `/query` — 자연어 질의 스킬. 볼트 내 엔티티·소스를 frontmatter → 백링크 → 본문 순(sequential with fallback)으로 탐색해 파일 근거와 함께 답한다. 읽기 전용, 근거 없으면 "모름" 반환으로 할루시네이션 방지.
+
+---
+
 ## [1.1.2] - 2026-04-21
 
 ### Infrastructure
