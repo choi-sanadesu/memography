@@ -109,7 +109,7 @@ Chrome MCP 경로로 재시도할까요?
 |---|---|---|
 | `.md` · `.txt` · `.html` | `Read` | 직접 |
 | `.pdf` | `Read` + `pages` 인자 | 10페이지 초과 시 `pages: "1-10"` 우선 |
-| `.png` · `.jpg` · `.jpeg` · `.webp` | `Read` | 비전 모델로 내용 파악 |
+| `.png` · `.jpg` · `.jpeg` · `.webp` · `.gif` | `Read` + `sips`/`stat` | 메타 추출 + 캡션 + 선택 OCR ([images.md](images.md)) |
 | `.docx` · `.xlsx` · `.pptx` | anthropic-skills의 해당 스킬 경유 | 별도 스킬 있으면 활용 |
 | `.json` · `.csv` · `.xml` | `Read` | 구조화 데이터, 그대로 |
 | 기타 | 미지원 | 사용자에게 텍스트 변환 요청 |
@@ -134,7 +134,7 @@ Chrome MCP 경로로 재시도할까요?
 | URL (Chrome) | `get_page_text` 시작부 또는 페이지 `<title>` |
 | `.md` 파일 | frontmatter `title:` → 없으면 첫 H1 → 없으면 파일명 |
 | `.pdf` | PDF 메타데이터 → 없으면 첫 페이지 큰 글자 → 없으면 파일명 |
-| 이미지 파일 | 파일명 (EXIF 캡션 있으면 보조) |
+| 이미지 파일 | 파일명 → EXIF 캡션 있으면 보조 → 비전 추정 (상세는 [images.md](images.md)) |
 | 기타 | 확장자 제거 basename |
 
 **원제는 힌트에 불과.** 최종 제목은 LLM이 볼트 스타일로 정제:
@@ -189,6 +189,13 @@ Chrome MCP 경로로 재시도할까요?
 
 1. 볼트 밖 → 이동 대신 복사 확인
 2. 사용자 confirm → `03. sanawiki/raw/ref.jpg`로 복사 (원본 보존)
-3. Read (비전) → 이미지 내용 파악
-4. 도메인 분류 → sana/비주얼
+3. 복사된 경로에서 메타 추출:
+   - sips -g pixelWidth -g pixelHeight -g format "03. sanawiki/raw/ref.jpg"
+   - stat -f '%SB' -t '%Y-%m-%d' "03. sanawiki/raw/ref.jpg"
+4. Read (비전) → 캡션 생성, 텍스트 인지 시 OCR 자동 전사
+5. 도메인 분류 → sana/비주얼
+6. Step 5 → type: image 템플릿으로 frontmatter 채움
+   (format=jpg, resolution=2048x1536, captured=2026-04-19)
 ```
+
+상세 절차(메타·캡션·OCR·PII 마스킹)는 [images.md](images.md).
