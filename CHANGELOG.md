@@ -11,7 +11,8 @@ Format: [Semantic Versioning](https://semver.org/). Each release section lists c
 ### Breaking Changes
 
 - `medium` → `media` 명명 변경. 기존 볼트의 `medium:` frontmatter를 `media:`로 업데이트 필요.
-  `/lint` Check 1이 `medium:` 필드를 알 수 없는 필드(stray warn)로 리포트.
+  `/lint`는 잔여 `medium:` 필드를 자동 감지하지 않으므로 텍스트 검색으로 직접 확인:
+  `grep -r "^medium:" <vault-root>`
 - `type` enum에서 `source` 제거. 기존 `type: source` 페이지는 `type: reference`로 업데이트 필요.
   v1.2.0 Deprecated 섹션에서 예고된 변경.
 
@@ -30,7 +31,7 @@ Format: [Semantic Versioning](https://semver.org/). Each release section lists c
 
 1. 볼트 내 `type: source` 페이지를 `type: reference`로 일괄 수정.
 2. 볼트 내 `medium:` frontmatter 키를 `media:`로 일괄 수정.
-3. `/lint` 실행 후 Check 1 리포트로 잔여 위반 확인.
+3. `grep -r "^medium:" <vault-root>` 로 잔여 `medium:` 필드 확인 후 수동 수정.
 
 ---
 

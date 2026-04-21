@@ -60,7 +60,6 @@ Phase 1에서 수집한 전체 관리 대상. 단 루트 `log.md`·`index.md`·`
   제안: archive (폴더 경로 `05. sanarchive/` 기반)
 ```
 
-
 ---
 
 ## Check 2: 깨진 위키링크
