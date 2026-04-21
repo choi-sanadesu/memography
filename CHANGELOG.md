@@ -10,6 +10,7 @@ Format: [Semantic Versioning](https://semver.org/). Each release section lists c
 
 ### Added
 
+- `/query` — 자연어 질의 스킬. 볼트 내 엔티티·소스를 frontmatter → 백링크 → 본문 순(sequential with fallback)으로 탐색해 파일 근거와 함께 답한다. 읽기 전용, 근거 없으면 "모름" 반환으로 할루시네이션 방지.
 - 소스 페이지(`type: source`)용 `medium` frontmatter 필드 — 소스의 미디어 유형 축(`article | video | image | podcast | paper`). 기존 `type`(페이지 역할)과는 별개 축. `note`는 사용자 작성 페이지로 `type` 쪽에 유지.
 - `/ingest`의 medium 자동 추론 — URL host / 파일 확장자 / MIME 기반 판정. host-first 우선순위 (youtube·vimeo→video, spotify podcasts·apple podcast→podcast, arxiv·doi→paper). 상세 규칙은 `skills/ingest/references/classifier.md` 참조.
 - `/lint` Check 1에 `medium` 검증 추가 — `type: source`에 누락 시 ⚠️ warn, enum 위반 시 ❌ fail (단 볼트 `CLAUDE.md §3.1`에 medium enum이 정의된 경우에만). `type≠source`인데 `medium` 있으면 stray warn.
@@ -17,6 +18,7 @@ Format: [Semantic Versioning](https://semver.org/). Each release section lists c
 
 ### Changed
 
+- `/ingest` 이미지 파일 수용 확장 — `.png`/`.jpg`/`.jpeg`/`.webp`/`.gif` 입력 시 메타(파일명·포맷·해상도·생성일)·Claude 비전 캡션·선택 OCR을 추출해 `type: image` frontmatter의 소스 페이지 생성. 세부 절차는 `skills/ingest/references/images.md`.
 - `/ingest` Step 5 소스 페이지 frontmatter 템플릿에 `medium:` 키 추가. Step 3 B모드 확인 블록이 도메인과 함께 medium을 제시.
 - `/promote` 엔티티 템플릿, `/retro` 프로젝트 retro 템플릿에 "medium 비대상" 주석 1행 — 엔티티·회고 페이지에는 `medium` 필드를 두지 않는다.
 
