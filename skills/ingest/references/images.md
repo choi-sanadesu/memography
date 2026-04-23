@@ -1,6 +1,6 @@
 # 이미지 입력 처리
 
-이미지 파일(`.png`·`.jpg`·`.jpeg`·`.webp`·`.gif`)을 볼트 소스로 편입할 때의 메타 추출·캡션·OCR 세부 절차. Step 1(로딩)과 Step 5(페이지 작성) 분기에서 참조.
+이미지 파일(`.png`·`.jpg`·`.jpeg`·`.webp`·`.gif`)을 볼트 inbox로 편입할 때의 메타 추출·캡션·OCR 세부 절차. Step 1(로딩)과 Step 4(페이지 작성) 분기에서 참조.
 
 ---
 
@@ -11,7 +11,7 @@
 | 확장자 | 처리 |
 |---|---|
 | `.png` · `.jpg` · `.jpeg` · `.webp` | 정상 경로 |
-| `.gif` | 첫 프레임만 분석 (다중 프레임·애니메이션은 v1.2 범위 밖) |
+| `.gif` | 첫 프레임만 분석 (다중 프레임·애니메이션은 v0.1 범위 밖) |
 | `.heic` · `.heif` | `sips -s format jpeg` 선변환 후 처리. 변환 실패 시 사용자 보고 |
 | `.svg` | 래스터 아님 — 텍스트로 `Read` (이미지 분기 아님) |
 | 기타 (`.bmp`·`.tiff` 등) | `sips`가 지원하면 진행, 아니면 미지원 안내 |
@@ -25,7 +25,7 @@
 
 ## 메타 추출
 
-Step 1에서 이미지를 `Read`하기 **전**에 실행. 메타는 Step 5 frontmatter로 흘러간다.
+Step 1에서 이미지를 `Read`하기 **전**에 실행. 메타는 Step 4 frontmatter로 흘러간다.
 
 ### macOS 표준 경로
 
@@ -64,7 +64,7 @@ stat {path}           # 생성일
 
 ### 볼트 밖 이미지
 
-`sources.md`의 Step 4 규칙상 볼트 밖 이미지는 **복사 확인 전에는 손대지 않는다.** 메타 추출은 사용자가 복사에 동의한 뒤, 볼트 내 최종 경로에서 수행.
+`sources.md`의 Step 3 규칙상 볼트 밖 이미지는 **복사 확인 전에는 손대지 않는다.** 메타 추출은 사용자가 복사에 동의한 뒤, 볼트 내 최종 경로에서 수행.
 
 ---
 
@@ -78,7 +78,7 @@ stat {path}           # 생성일
 
 - **길이**: 1~2문장. 과도한 묘사 금지.
 - **내용**: 주요 피사체 → 구도·배치 → 분위기·색감·맥락 순. 메타 수치(해상도·포맷)는 캡션에 넣지 않음 (frontmatter가 담당).
-- **문체**: 대상 볼트의 기존 소스 페이지 톤에 맞춤 (대체로 담백한 명사구 중심).
+- **문체**: 대상 볼트의 기존 inbox/소스 페이지 톤에 맞춤 (대체로 담백한 명사구 중심).
 
 ### 금지 사항
 
@@ -102,7 +102,7 @@ stat {path}           # 생성일
 
 ### 전사 포맷
 
-소스 페이지의 `## 추출 텍스트 (OCR)` 섹션에 기록:
+inbox 페이지의 `## 추출 텍스트 (OCR)` 섹션에 기록:
 
 ```markdown
 ## 추출 텍스트 (OCR)
@@ -118,7 +118,7 @@ stat {path}           # 생성일
 
 ### PII 감지 시
 
-앞선 "금지 사항"대로 마스킹 후 Step 5 확인 단계에서 별도 경고 표시:
+앞선 "금지 사항"대로 마스킹 후 Step 4 확인 단계에서 별도 경고 표시:
 
 ```
 ⚠️ 이미지에 민감정보로 보이는 영역이 있어 마스킹했습니다: {라벨}.
@@ -132,21 +132,25 @@ stat {path}           # 생성일
 ```yaml
 ---
 title: K-POP 비주얼 디렉션 무드보드
-type: image
-domain: enter
+type: inbox
 tags: [비주얼디렉션, 무드보드, K-POP]
+updated: 2026-04-21
+summary: 파스텔 톤 인물 클로즈업을 3×3 그리드로 배치한 K-POP 무드보드. 채도 낮춤 + 필름 질감으로 레트로 분위기 강조.
 source:
+media: image
 format: png
 resolution: 2048x1152
 captured: 2026-04-19
-updated: 2026-04-21
 ---
 ```
+
+> `type: inbox`는 임시 마커. classify Step 3에서 최종 type 확정.
+> `media: image`는 Step 2 자동 추론 결과 (확장자 규칙).
 
 본문 구성:
 
 ```markdown
-![[02. enterwiki/raw/moodboard-2026-04.png]]
+![[raw/images/moodboard-2026-04.png]]
 
 ## 캡션
 
@@ -161,12 +165,9 @@ updated: 2026-04-21
 ## 띠니의 관찰
 
 …
-
-## 관련
-
-- [[04. entities/brand/NewJeans]]
-- [[03. sanawiki/wiki/음악/아이돌-비주얼-노트]]
 ```
+
+> `## 관련` 섹션은 선택. classify Step 4에서 구조화된 `related:` 필드(entities/sources/cases/references/notes 버킷)에 작성. 본문 `## 관련` 섹션은 사람 가독용 보조.
 
 ---
 
@@ -179,12 +180,13 @@ updated: 2026-04-21
 | 10MB 초과 | 사용자에게 리사이즈 또는 분할 요청 |
 | HEIC/HEIF | `sips -s format jpeg --out {tmp.jpg}` 후 진행, 실패 시 보고 |
 | GIF 다중 프레임 | 첫 프레임만 분석. 여러 프레임이 내용적으로 의미 있으면 본문에 명시 |
-| EXIF GPS·카메라 기종 | v1.2 범위 밖 (요청 시 v1.3+ 검토) |
+| EXIF GPS·카메라 기종 | v0.1 범위 밖 (요청 시 추후 검토) |
 
 ---
 
 ## 연결
 
 - Step 1 분기·에러는 [workflow.md](workflow.md) Step 1 참조.
-- Step 5 이미지 템플릿은 [workflow.md](workflow.md) Step 5 "이미지 소스 템플릿 분기".
-- 볼트 밖 이미지 복사 규칙은 [sources.md](sources.md) "파일 입력 → 원본 이동".
+- Step 4 이미지 템플릿은 [workflow.md](workflow.md) Step 4 "이미지 입력 분기".
+- 볼트 밖 이미지 복사 규칙은 [sources.md](sources.md) "파일 입력 → 원본 처리".
+- media 자동 추론(이미지 확장자 → `image`)은 [media.md](media.md) 규칙 5번.

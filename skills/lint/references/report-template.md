@@ -7,7 +7,7 @@
 ## 템플릿
 
 ```markdown
-# 🏛️ Alexandria Lint 리포트
+# 📚 Memography Lint 리포트
 
 **날짜:** {YYYY-MM-DD}
 **볼트:** {vault-root-path}
@@ -24,7 +24,7 @@
 | 3 | 고립 페이지 | {✅ \| ℹ️} | {N} |
 | 4 | inbox 잔여 | {✅ \| ⚠️} | {N} |
 | 5 | stale `updated:` | {✅ \| ⚠️} | {N} |
-| 6 | 엔티티 승격 후보 | {✅ \| ℹ️} | {N} |
+| 6 | 태그 카탈로그 위반 | {✅ \| ⚠️} | {N} |
 
 **총평:** {한 줄 요약 — 예: "규칙 위반 2건, 우선 처리 권장" 또는 "이상 없음"}
 
@@ -61,6 +61,7 @@
 ### ❌ {N}건
 
 - `{source-path}` → `[[{target}]]`
+  - 위치: 본문 | related.{bucket}
   - 상태: unresolved | ambiguous
   - 후보: {basename 동명 파일 경로 목록 또는 "없음"}
 
@@ -68,9 +69,9 @@
 
 ## 3. 고립 페이지 (참고)
 
-백링크 0인 페이지 목록. **반드시 문제는 아니므로** 검토만 권장.
+본문 + `related:` 양쪽에서 백링크 0인 페이지. **반드시 문제는 아니므로** 검토만 권장.
 
-- `{path}` (domain: {domain}, updated: {date})
+- `{path}` (type: {type}, updated: {date})
 
 ---
 
@@ -80,9 +81,15 @@
 {1+이면:}
 
 **{N}개 잔여:**
-- `01. inbox/{filename}` ({size}, 수정: {mtime})
+- `inbox/{filename}` ({size}, 수정: {mtime}, {경과일}일 경과)
 
-→ ingest 또는 폐기 처리 권장.
+{3일+ 잔류 또는 10개 초과 시:}
+
+⚠️ 우선 처리 항목:
+- `inbox/{filename}` ({경과일}일 경과)
+- 총 {N}개 — 임계 10개 {초과 | 이내}
+
+→ `/classify`로 일괄 정리 권장.
 
 ---
 
@@ -91,19 +98,28 @@
 {동일 패턴}
 
 - `{path}` — {N}일 경과
-  - domain: {domain}
+  - type: {type}
   - 제안: 내용 재검토 또는 updated 필드 갱신
 
 ---
 
-## 6. 엔티티 승격 후보 (검토)
+## 6. 태그 카탈로그 위반
 
-**LLM 휴리스틱 기반 제안. false positive 포함될 수 있음.**
+{이슈 없으면 "이상 없음" 한 줄}
 
-- **{이름}**
-  - 등장: {page1}, {page2}, ...
-  - 도메인 분포: {enter: N, sana: N, ...}
-  - 제안 경로: `04. entities/{카테고리}/{이름}.md`
+{warn 있으면:}
+
+### ⚠️ {N}건
+
+- `{path}`
+  - 미등록 태그: [`{tag1}`, `{tag2}`]
+  - 현재 태그: [{전체 tags}]
+  - 제안: `meta/tags.md` 추가 또는 기존 태그로 대체
+
+### 신규 태그 후보 (빈도순)
+
+- `{tag}`: {N}개 페이지에서 사용 → `meta/tags.md` 추가 권장
+- `{tag}`: 1개 페이지 → 단발성, 기존 `{유사 태그}` 권장
 
 ---
 
@@ -120,7 +136,7 @@
 
 ---
 
-*이 리포트는 `alexandria-keeper:lint` 스킬이 생성. 파일을 수정하지 않음 (v1 기준).*
+*이 리포트는 `memography:lint` 스킬이 생성. 파일을 수정하지 않음 (v0.1 기준).*
 ```
 
 ---
@@ -136,12 +152,12 @@
 
 | 체크 | ⚠️ 기준 | ❌ 기준 |
 |---|---|---|
-| frontmatter | — | 필수 필드 누락, enum 위반(type·domain·media), 파싱 에러 |
+| frontmatter | summary 길이 위반, tags 권장 미만(<3) | 필수 필드 누락(type/tags/updated/summary), enum 위반(type·media), 파싱 에러, tags 상한 초과(>7), `type: source`인데 source URL 누락, type-위치 불일치 |
 | 깨진 링크 | ambiguous | unresolved |
 | 고립 페이지 | (항상 ℹ️, 경고 아님) | — |
-| inbox | 1+ 잔여 | — |
+| inbox | 1+ 잔여 + (3일+ stale 또는 >10개) | — |
 | stale | 1+ 경과 | — |
-| 엔티티 후보 | (항상 ℹ️) | — |
+| 태그 카탈로그 위반 | 미등록 태그 1+ | — |
 
 ---
 
