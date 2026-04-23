@@ -15,11 +15,11 @@
 질의 문자열에서 다음을 뽑는다:
 
 - **고유명사 / 엔티티명**: 대문자 토큰·한글 명사구 (예: `Smerz`, `Erika de Casier`, `뉴진스`)
-- **도메인 힌트**: `아카이브`·`sana`·`enter` 같은 대상 볼트 `CLAUDE.md §3.1`의 domain enum 단서
-- **타입 힌트**: "아티스트", "앨범", "회고" → 대상 볼트 type enum으로 매핑
+- **폴더 힌트**: `엔티티`·`인물`·`소스`·`케이스` 같은 볼트 폴더 단서. `entities/people` 같은 명시적 경로도 인식
+- **타입 힌트**: "엔티티", "소스", "노트" → 대상 볼트 type enum으로 매핑 (`inbox` 제외 — query는 inbox 탐색 안 함)
 - **관계 키워드**: "언급된", "같이", "관련", "영향을 준" → Layer 2 트리거 신호
 
-추출 결과를 `{keywords, domain_hints, type_hints, relation_cues}`로 유지.
+추출 결과를 `{keywords, folder_hints, type_hints, relation_cues}`로 유지.
 
 ---
 
@@ -31,10 +31,9 @@
 
 ### 대상
 
-- `04. entities/**/*.md` (엔티티 허브 — 엔티티성 질의의 1차 후보)
-- `*/wiki/**/*.md` (소스 페이지)
-- `06. studio-sana/**/*.md` (프로젝트 페이지)
-- 도메인 정의 `_*.md` (도메인 질의일 때)
+- `entities/**/*.md` (엔티티 허브 — 엔티티성 질의의 1차 후보)
+- `sources/*.md`, `cases/*.md`, `references/*.md`, `notes/*.md`
+- 폴더별 `_index.md` (폴더 단위 질의일 때)
 
 ### 매칭 규칙
 
@@ -42,15 +41,16 @@
 
 1. **`title` 일치/포함** — 추출된 고유명사가 title에 정확 또는 부분 매칭
 2. **파일명 일치/포함** — 동일 기준을 파일 basename에도 적용 (title과 다를 수 있음)
-3. **`tags` 포함** — 질의 키워드가 tag 리스트에 있는가
-4. **`domain` 필터** — domain 힌트가 있으면 해당 domain만 통과
+3. **`aliases` 포함** — entity 페이지의 `aliases:` 리스트에 키워드 매칭 (한글 표기 등)
+4. **`tags` 포함** — 질의 키워드가 tag 리스트에 있는가
 5. **`type` 필터** — type 힌트가 있으면 해당 type만 통과
+6. **폴더 필터** — 폴더 힌트가 있으면 해당 폴더만 (예: "entities/people" → `entities/people/**/*.md`)
 
 ### Confidence 판정
 
 | 조건 | confidence |
 |---|---|
-| 단일 후보, title/파일명 정확 매칭 | high |
+| 단일 후보, title/파일명 정확 매칭 또는 aliases 정확 매칭 | high |
 | 단일 후보, 부분 매칭 또는 tag 매칭 | medium |
 | 2~5개 후보 | low (Layer 2로 내려갈 필요) |
 | 6개 이상 또는 0개 | none (확장 필요) |
@@ -67,30 +67,32 @@
 
 ---
 
-## Layer 2 — 백링크 추적
+## Layer 2 — Related (구조화 + 본문 백링크)
 
 ### 목적
 
 엔티티·소스 간 관계 기반 증거. "X와 같이 언급된 Y"·"X 관련 페이지" 류 질의의 본진.
 
+볼트 §2 D12: 그래프 데이터는 **구조화 `related:` YAML 필드가 SOT**. 본문 `[[...]]`는 보조.
+
 ### 대상
 
-- Layer 1에서 수집된 후보의 in-links (누가 이 페이지를 wiki-link로 가리키는가)
-- 후보의 `## 관련` 섹션 out-links
-- `04. entities/**/*.md` 허브의 `## 참고 소스`·`## 언급 페이지` 섹션
+- Layer 1에서 수집된 후보의 in-related (누가 이 페이지를 `related.*` 버킷에 담고 있는가)
+- 후보의 자체 `related:` 5개 버킷 (entities/sources/cases/references/notes) out-links
+- 본문 `[[...]]` 위키링크 (구조화 데이터 보조)
 
 ### 매칭 규칙
 
-1. **역방향 링크 추적**: 후보 페이지 경로·파일명이 포함된 `[[...]]` 위키링크를 전 볼트에서 검색 (제외 경로 제외)
-2. **순방향 링크 추적**: 후보 페이지 본문의 `[[...]]` 링크 수집
-3. **허브 섹션 파싱**: 엔티티 페이지라면 `## 참고 소스`·`## 관련` 섹션의 링크를 구조화해 수집
+1. **역방향 related 추적**: 후보 페이지 경로·파일명이 어느 페이지의 `related.{bucket}` 리스트에 들어있는지 검색 (전 볼트). YAML 파싱 후 5개 버킷 모두 확인.
+2. **순방향 related 수집**: 후보 페이지 frontmatter `related:` 5개 버킷의 각 링크 수집.
+3. **본문 wiki-link fallback**: 위 두 단계로 부족하면 본문 `[[...]]` 매칭으로 보강 (구조화 데이터 누락 페이지 대응).
 
 ### Confidence 판정
 
 | 조건 | confidence |
 |---|---|
-| 관계가 명확히 드러나는 섹션에서 매칭 | high |
-| 본문 중 wiki-link로만 연결 | medium |
+| 구조화 `related:` 버킷에서 명확히 매칭 | high |
+| 본문 `[[...]]` 링크로만 연결 | medium |
 | 링크는 있지만 컨텍스트 모호 | low |
 | 관계 증거 0 | none |
 
@@ -110,7 +112,7 @@
 
 ### 목적
 
-frontmatter·링크 어디에도 안 잡히는 자유 키워드 질의의 마지막 수단.
+frontmatter·related 어디에도 안 잡히는 자유 키워드 질의의 마지막 수단.
 
 ### 대상
 
@@ -137,10 +139,10 @@ Layer 3은 구조적 신뢰도가 낮아 **high는 기본적으로 부여하지 
 세 레이어 모두 confidence = none:
 
 - Layer 1 frontmatter 매칭 0
-- Layer 2 백링크 관계 0
+- Layer 2 related 관계 0
 - Layer 3 본문 매치 0
 
-→ [references/report-template.md](report-template.md)의 "모름" 템플릿 사용. 질의 재구성 제안 1~3개를 함께 출력 (예: 동의어·부분어·도메인 한정 등).
+→ [references/report-template.md](report-template.md)의 "모름" 템플릿 사용. 질의 재구성 제안 1~3개를 함께 출력 (예: 동의어·부분어·폴더 한정 등).
 
 ---
 
@@ -157,3 +159,4 @@ Layer 3은 구조적 신뢰도가 낮아 **high는 기본적으로 부여하지 
 - 볼트가 수백 페이지 이상이면 Layer 3은 비용이 커진다. 가능하면 Layer 1·2에서 끝낼 수 있는 질의 형태를 사용자에게 제안.
 - 의미 유사도는 처리 안 함. "Smerz와 비슷한 아티스트"는 Layer 2 관계 증거 없으면 Layer 3까지 내려가도 low confidence가 한계.
 - 영상 콘텐츠 내용 이해는 out of scope (ingest와 동일 한계).
+- 구조화 `related:` 필드가 누락된 옛 페이지는 Layer 2가 본문 fallback에만 의존 → confidence 한 단계 낮음. classify로 정비 권장.

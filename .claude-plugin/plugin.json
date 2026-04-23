@@ -1,7 +1,7 @@
 {
-  "name": "alexandria-keeper",
-  "version": "2.0.0",
-  "description": "Alexandria \ubcfc\ud2b8 \uc6b4\uc601 \ud50c\ub7ec\uadf8\uc778. \uc9c0\uc2dd \ubcfc\ud2b8\uc758 \ubb34\uacb0\uc131\u00b7\uad6c\uc870\ub97c \uc720\uc9c0\ud558\ub294 \uc0ac\uc11c \uc5ed\ud560. lint, ingest, promote, retro \uc2a4\ud0ac \uc81c\uacf5.",
+  "name": "memography",
+  "version": "0.1.0",
+  "description": "Memography Obsidian 볼트 운영 플러그인. inbox 기반 ingest·classify 2단계 워크플로우 + lint·query 운영 스킬.",
   "author": {
     "name": "choi-sanadesu"
   }
