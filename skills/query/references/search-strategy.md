@@ -1,162 +1,201 @@
-# Query 증거 수집 전략
+# Query 탐색 전략 — retrieval.md 매핑 + 자연어 매핑 휴리스틱
 
-`/query` 스킬의 3-레이어 sequential-with-fallback 탐색 알고리즘 상세.
+볼트 `.claude/retrieval.md`가 SOT. 이 문서는 (a) Phase별 스킬 동작 매핑, (b) 자연어 질의를 retrieval.md Phase 1 질문 유형 표에 매핑하는 휴리스틱을 다룬다.
 
 핵심 원칙:
 
-- **순차 조사·조기 종료** — 상위 레이어에서 충분한 증거가 나오면 하위 레이어로 내려가지 않는다. 비용·노이즈 모두 최소화.
-- **Confidence 누적** — 각 레이어 결과에 `high / medium / low / none` 표기. 답변에 그대로 노출한다.
-- **File-back 필수** — 모든 주장은 실제 파일 발췌로 지탱한다. 발췌 불가능하면 해당 증거는 버린다.
+- **순차 진행·조기 종료** — Phase 0~3을 순서대로 진행하되, 충분한 증거가 나오면 다음 Phase로 넘어가지 않는다.
+- **File-back 필수** — 모든 주장은 실제 파일 발췌로 지탱한다.
+- **retrieval.md SOT** — 본 문서가 retrieval.md와 충돌하면 retrieval.md를 따른다 (스킬은 동적 로드).
 
 ---
 
-## 사전 준비: 질의 파싱
+## Phase 0 — 세션 시작 매핑
 
-질의 문자열에서 다음을 뽑는다:
+### retrieval.md 정의
 
-- **고유명사 / 엔티티명**: 대문자 토큰·한글 명사구 (예: `Smerz`, `Erika de Casier`, `뉴진스`)
-- **폴더 힌트**: `엔티티`·`인물`·`소스`·`케이스` 같은 볼트 폴더 단서. `entities/people` 같은 명시적 경로도 인식
-- **타입 힌트**: "엔티티", "소스", "노트" → 대상 볼트 type enum으로 매핑 (`inbox` 제외 — query는 inbox 탐색 안 함)
-- **관계 키워드**: "언급된", "같이", "관련", "영향을 준" → Layer 2 트리거 신호
+> - 사나가 특정 페이지·엔티티·폴더·태그·inbox 지정 시: 직행
+> - 그 외: `hot.md` 로드
 
-추출 결과를 `{keywords, folder_hints, type_hints, relation_cues}`로 유지.
+### 스킬 동작
 
----
+질의 파싱 단계에서 직접 지정 여부 판단:
 
-## Layer 1 — Frontmatter 매칭
-
-### 목적
-
-가장 구조적이고 신뢰도 높은 증거. 엔티티·소스 페이지 식별에 1순위.
-
-### 대상
-
-- `entities/**/*.md` (엔티티 허브 — 엔티티성 질의의 1차 후보)
-- `sources/*.md`, `cases/*.md`, `references/*.md`, `notes/*.md`
-- 폴더별 `_index.md` (폴더 단위 질의일 때)
-
-### 매칭 규칙
-
-각 파일의 YAML frontmatter를 파싱해 다음을 확인:
-
-1. **`title` 일치/포함** — 추출된 고유명사가 title에 정확 또는 부분 매칭
-2. **파일명 일치/포함** — 동일 기준을 파일 basename에도 적용 (title과 다를 수 있음)
-3. **`aliases` 포함** — entity 페이지의 `aliases:` 리스트에 키워드 매칭 (한글 표기 등)
-4. **`tags` 포함** — 질의 키워드가 tag 리스트에 있는가
-5. **`type` 필터** — type 힌트가 있으면 해당 type만 통과
-6. **폴더 필터** — 폴더 힌트가 있으면 해당 폴더만 (예: "entities/people" → `entities/people/**/*.md`)
-
-### Confidence 판정
-
-| 조건 | confidence |
+| 질의 패턴 | Phase 0 동작 |
 |---|---|
-| 단일 후보, title/파일명 정확 매칭 또는 aliases 정확 매칭 | high |
-| 단일 후보, 부분 매칭 또는 tag 매칭 | medium |
-| 2~5개 후보 | low (Layer 2로 내려갈 필요) |
-| 6개 이상 또는 0개 | none (확장 필요) |
+| `[[entities/people/뉴진스]] 알려줘` 같은 명시적 위키링크 | 해당 파일 직접 read, hot.md 건너뜀 |
+| `entities/people/ 폴더에서` 같은 폴더 명시 | 해당 폴더 진입, Phase 1 폴더 매핑 건너뜀 |
+| `#비주얼디렉션 태그 페이지` 같은 태그 명시 | 태그 grep 또는 `meta/tags.md` 참조, Phase 2로 |
+| `inbox에서` 같은 명시 | inbox 직접 진입 (Phase 1 기본은 inbox 제외) |
+| `Smerz가 뭐야?`처럼 일반 질의 | hot.md 먼저 read |
 
-### Early-exit 조건
+### hot.md read 후
 
-- confidence = high 이고 질의가 "X가 뭐야?"·"X에 대해" 형태의 단일 엔티티 질의 → Layer 1에서 종료, 답변 합성.
-- confidence = medium 이지만 Layer 2 관계 추적이 불필요한 질의 → Layer 1에서 종료.
+hot.md의 Pinned·Auto·Manual 섹션에서 질의 키워드 매칭:
 
-### Fallback 트리거
-
-- confidence ≤ low
-- 질의에 관계 키워드 포함 (관계 질의는 기본적으로 Layer 2로 확장)
+- 매칭되면 hot.md 해당 항목의 위키링크에서 출발 → Phase 1 건너뛰고 Phase 2로
+- 매칭 안 되면 Phase 1 진입
 
 ---
 
-## Layer 2 — Related (구조화 + 본문 백링크)
+## Phase 1 — 자연어 질의 → 질문 유형 매핑
 
-### 목적
+### retrieval.md 정의
 
-엔티티·소스 간 관계 기반 증거. "X와 같이 언급된 Y"·"X 관련 페이지" 류 질의의 본진.
+> | 질문 유형 | 진입점 |
+> |---|---|
+> | hot에 다룬 주제 | hot 링크에서 출발 |
+> | 특정 인물·브랜드·작품·개념·미디어 | `entities/{카테고리}/{이름}` |
+> | 사나 작업 서사 | `cases/` |
+> | 특정 원본(인터뷰·영상·아티클) | `sources/` |
+> | 방법론·가이드·인사이트 | `notes/` |
+> | 큐레이션 모음 | `references/` |
+> | inbox | Phase 0 직접 지정에서만 진입 |
+> | raw | 리트리벌 대상 아님 |
 
-볼트 §2 D12: 그래프 데이터는 **구조화 `related:` YAML 필드가 SOT**. 본문 `[[...]]`는 보조.
+### 자연어 매핑 휴리스틱
 
-### 대상
+질의에서 키워드·의도를 뽑아 위 표에 매핑:
 
-- Layer 1에서 수집된 후보의 in-related (누가 이 페이지를 `related.*` 버킷에 담고 있는가)
-- 후보의 자체 `related:` 5개 버킷 (entities/sources/cases/references/notes) out-links
-- 본문 `[[...]]` 위키링크 (구조화 데이터 보조)
+| 질의 키워드 / 의도 | 매핑 | 진입점 |
+|---|---|---|
+| 사람 이름·고유명사 (대문자 토큰·한글 명사구) | 인물 | `entities/people/{name}` |
+| "그룹", "아이돌", "팀" + 고유명사 | 인물 (그룹) | `entities/people/{group}` (볼트 §1: 그룹은 people에 포함) |
+| 브랜드명, "레이블", "에이전시", "스튜디오" | 브랜드 | `entities/brands/{name}` |
+| "앨범", "MV", "전시", "영화", "책" + 작품명 | 작품 | `entities/works/{name}` |
+| "디자인", "프레임워크", "이론", "방법론" + 용어 | 개념 | `entities/concepts/{term}` |
+| "매거진", "플랫폼", "Spotify", "Instagram" 류 | 미디어 | `entities/media/{name}` |
+| "내가 한 작업", "사나의 케이스", "studio-sana" | 사나 작업 | `cases/` |
+| 특정 URL·기사 제목·인터뷰·영상 언급 | 소스 | `sources/` |
+| "어떻게", "방법", "가이드", "인사이트" | 방법론 | `notes/` |
+| "추천", "큐레이션", "참고할 만한" | 레퍼런스 | `references/` |
 
-### 매칭 규칙
+### 진입 절차
 
-1. **역방향 related 추적**: 후보 페이지 경로·파일명이 어느 페이지의 `related.{bucket}` 리스트에 들어있는지 검색 (전 볼트). YAML 파싱 후 5개 버킷 모두 확인.
-2. **순방향 related 수집**: 후보 페이지 frontmatter `related:` 5개 버킷의 각 링크 수집.
-3. **본문 wiki-link fallback**: 위 두 단계로 부족하면 본문 `[[...]]` 매칭으로 보강 (구조화 데이터 누락 페이지 대응).
+1. 질의에서 추출한 키워드로 위 표 매핑 → 진입점 폴더 결정
+2. 해당 폴더에서 파일명·basename으로 직접 매칭 시도:
+   - 정확 매칭 → 파일 직접 read (Phase 2 시작)
+   - 부분 매칭 또는 0건 → 폴더 `_index.md` 폴백 (Phase 2 폴백 규칙)
+3. 매핑이 모호하면 (인물인지 브랜드인지 불명확 등) → 가장 가능성 높은 1개 진입점 우선, 결과 부족 시 다른 진입점 추가 시도
 
-### Confidence 판정
+### 매핑 실패 시
 
-| 조건 | confidence |
-|---|---|
-| 구조화 `related:` 버킷에서 명확히 매칭 | high |
-| 본문 `[[...]]` 링크로만 연결 | medium |
-| 링크는 있지만 컨텍스트 모호 | low |
-| 관계 증거 0 | none |
-
-### Early-exit 조건
-
-- confidence ≥ medium, 질의의 관계 의도가 해소됨 → Layer 2에서 종료.
-- 관계 키워드가 없고 Layer 1에서 high였다면 Layer 2는 보강용으로만 쓰고 종료.
-
-### Fallback 트리거
-
-- confidence = none 이고 질의가 자유 키워드 탐색 성격 (관계 질의가 아님)
-- Layer 1도 none 이었고 Layer 2도 none
-
----
-
-## Layer 3 — 본문 텍스트 검색
-
-### 목적
-
-frontmatter·related 어디에도 안 잡히는 자유 키워드 질의의 마지막 수단.
-
-### 대상
-
-탐색 범위 전부 (제외 경로 제외).
-
-### 매칭 규칙
-
-1. **Grep**: 추출된 키워드·고유명사 각각에 대해 정규식 검색 (case-insensitive 기본)
-2. **문맥 수집**: 매치 주변 3~10줄을 발췌. 여러 매치가 한 문단에 모이면 합친다.
-3. **노이즈 필터**: `##`·`---` 같은 구조 요소만 있는 매치는 제외. 실제 문장을 포함한 것만 증거로 채택.
-
-### Confidence 판정
-
-| 조건 | confidence |
-|---|---|
-| 키워드가 본문에 다수 등장 + 같은 페이지에 반복 | medium |
-| 단발 매치 | low |
-| 매치 0 | none |
-
-Layer 3은 구조적 신뢰도가 낮아 **high는 기본적으로 부여하지 않는다.**
-
-### "모름" 반환 조건
-
-세 레이어 모두 confidence = none:
-
-- Layer 1 frontmatter 매칭 0
-- Layer 2 related 관계 0
-- Layer 3 본문 매치 0
-
-→ [references/report-template.md](report-template.md)의 "모름" 템플릿 사용. 질의 재구성 제안 1~3개를 함께 출력 (예: 동의어·부분어·폴더 한정 등).
+자연어 질의가 어느 유형에도 명확히 매핑되지 않으면 → 루트 `index.md` 카탈로그를 entry point로 사용 (Phase 2 폴백). 사나 검증 패턴 정당화.
 
 ---
 
-## 레이어 간 누적 답변 합성
+## Phase 2 — 확장
 
-- **단일 레이어 해소**: 해당 레이어 발췌만 사용.
-- **다중 레이어 해소**: 각 레이어 증거를 `report-template.md`의 `## 근거` 섹션에 레이어 라벨과 함께 병기 (`frontmatter 매칭, confidence: high` 등).
-- **상충되는 증거**: 모순된 내용이 발견되면 두 발췌를 모두 인용하고 `## 주의` 섹션에 명시. 어느 쪽이 맞는지 단정 금지.
+### retrieval.md 정의
+
+> - hop 상한: 2
+> - 로드 깊이: L1(제목+frontmatter) → 관련성 있으면 L2(본문) 승격
+> - 누적 토큰 ~5k 초과 시 중단
+> - 폴백: 폴더 `_index.md` → 루트 `index.md`
+
+### 스킬 동작
+
+#### Hop 추적
+
+Phase 1 진입점에서 출발해 hop 2까지 확장:
+
+- **hop 1**: 진입점 페이지의 `related:` 5개 버킷 (entities/sources/cases/references/notes) + 본문 `[[...]]` 위키링크 수집
+- **hop 2**: hop 1 페이지들의 `related:` 5개 버킷 + 본문 위키링크 수집
+- **hop 3+**: **금지**. retrieval.md 한도 준수.
+
+각 hop마다 관련성 평가:
+- 질의 키워드가 frontmatter `title`·`tags`·`aliases`·`summary`에 있음 → 관련성 high → L2(본문) 승격
+- frontmatter에 없지만 hop으로 연결 → L1 유지 (제목+frontmatter만 메모)
+
+#### 로드 깊이
+
+| 깊이 | 로드 내용 | 비용 |
+|---|---|---|
+| L1 | frontmatter + 첫 H1·H2 (~200토큰) | 낮음 |
+| L2 | 본문 전체 (~500~2000토큰) | 중간 |
+
+L1 → L2 승격 트리거:
+- frontmatter 키워드 매칭 + hop 1 이내
+- 또는 사용자 질의가 본문 인용을 명시적으로 요구 ("어떻게 설명했어?", "원문 그대로")
+
+#### 토큰 한도 (5k)
+
+누적 토큰 카운트 (대략):
+- L1 페이지 5~10개
+- 또는 L2 페이지 2~3개
+
+5k 초과 직전 중단 → 그 시점까지 수집된 증거로 답변 합성. 답변에 "토큰 한도 도달, 일부 페이지 미탐색" 명시.
+
+#### 폴백
+
+Phase 1 진입점이 매칭 실패하거나 hop 2까지 증거 부족하면:
+
+1. **폴더 `_index.md` 폴백**: Phase 1 진입점 폴더의 `_index.md` 카탈로그 read → 후보 재추출
+2. **루트 `index.md` 폴백**: 모든 폴더에서 매칭 실패하면 루트 `index.md` 전수 스캔 (사나가 실제로 사용한 패턴 — 이건 정상 폴백)
+
+폴백도 hop 2 한도 안에서 (hop 1: index.md, hop 2: index.md가 가리키는 후보 페이지).
+
+---
+
+## Phase 3 — 기록
+
+### retrieval.md 정의
+
+> 참조한 페이지들을 `log.md`에 `query` 이벤트로 기록 (touched 집계용).
+
+### 스킬 동작
+
+답변 합성 후, 참조한 모든 페이지를 `log.md`에 한 건의 query 이벤트로 append:
+
+```markdown
+## [{YYYY-MM-DD}] query | {질의 한 줄}
+
+- 참조: [[{path1}]], [[{path2}]], [[{path3}]]
+- 결과: 확정 | 부분 | 모름
+```
+
+### 자동
+
+확인 없이 `Edit`. append-only. **이 기록 누락 시 hot.md Auto 섹션 운영(7일 touched 집계)이 깨짐** — 절대 스킵 금지.
+
+### 예외
+
+- "모름" 결과도 기록 (참조: 없음, 결과: 모름) — 어떤 질의가 응답 못 받았는지 추적 가치
+- 사나가 명시적으로 `--no-log` 같은 플래그 요청 시에만 스킵 (v0.1 미지원, 추후 검토)
+
+---
+
+## "모름" 반환 조건
+
+Phase 0~2 절차 종료까지 file-back 가능한 증거가 0이면 "모름":
+
+- Phase 0 hot.md: 매칭 0
+- Phase 1 폴더 직행: 매칭 0
+- Phase 2 hop 2 + 폴백 (`_index.md`·`index.md`): 매칭 0
+
+→ [references/report-template.md](report-template.md)의 "모름" 템플릿 사용. 질의 재구성 제안 1~3개 + log.md 기록.
 
 ---
 
 ## 비용·한계 주의
 
-- 볼트가 수백 페이지 이상이면 Layer 3은 비용이 커진다. 가능하면 Layer 1·2에서 끝낼 수 있는 질의 형태를 사용자에게 제안.
-- 의미 유사도는 처리 안 함. "Smerz와 비슷한 아티스트"는 Layer 2 관계 증거 없으면 Layer 3까지 내려가도 low confidence가 한계.
+- 볼트 규모가 수백 페이지 이상이라도 **Phase 1 폴더 직행**이 핵심 — 전수 스캔 필요 없음. retrieval.md 설계 의도.
+- 토큰 5k 한도는 자연스러운 컷오프 — 의미 있는 답변 합성에 충분, 컨텍스트 폭주 방지.
+- 의미 유사도는 처리 안 함 — 동의어·표기 변이는 entity `aliases:` 필드 또는 사나 사전 정규화에 의존.
 - 영상 콘텐츠 내용 이해는 out of scope (ingest와 동일 한계).
-- 구조화 `related:` 필드가 누락된 옛 페이지는 Layer 2가 본문 fallback에만 의존 → confidence 한 단계 낮음. classify로 정비 권장.
+
+---
+
+## retrieval.md 부재 시 fallback
+
+대상 볼트에 `.claude/retrieval.md`가 없으면:
+
+1. 사나에게 "retrieval.md 부재 — fallback 모드 진행" 1회 보고
+2. fallback 절차:
+   - Phase 0 건너뜀 (hot.md 존재만 확인, 있으면 read)
+   - Phase 1: 자연어 매핑 휴리스틱은 유지하되 frontmatter 전수 스캔으로 보강
+   - Phase 2: hop·token 한도 그대로 적용
+   - Phase 3: log.md 기록 그대로
+3. 답변 끝에 "fallback 모드 진행" 1줄 명시 + retrieval.md 작성 권장
+
+이 fallback은 v0.1.0 한정 안전망 — 정상 운영에선 retrieval.md 항상 존재 가정.
