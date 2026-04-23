@@ -1,7 +1,7 @@
 {
   "name": "memography",
   "version": "0.1.0",
-  "description": "Memography Obsidian 볼트 운영 플러그인. inbox 기반 ingest·classify 2단계 워크플로우 + lint·query 운영 스킬.",
+  "description": "Memography Obsidian \ubcfc\ud2b8 \uc6b4\uc601 \ud50c\ub7ec\uadf8\uc778. inbox \uae30\ubc18 ingest\u00b7classify 2\ub2e8\uacc4 \uc6cc\ud06c\ud50c\ub85c\uc6b0 + lint\u00b7query \uc6b4\uc601 \uc2a4\ud0ac.",
   "author": {
     "name": "choi-sanadesu"
   }
