@@ -1,4 +1,4 @@
-# CLAUDE.md — LLM Wiki
+# CLAUDE.md — Bookkeeper
 
 Automated personal knowledge base. The agent compiles and maintains this wiki. The user curates sources and asks questions.
 
@@ -13,18 +13,18 @@ Wiki subdirectories:
 - `wiki/sources/` — one summary page per ingested source.
 - `wiki/entities/` — pages for people, organizations, products, tools.
 - `wiki/concepts/` — pages for ideas, frameworks, theories, patterns.
-- `wiki/synthesis/` — comparisons, analyses, cross-cutting themes. **LYT MOC pattern (linking hub)** — synthesis 페이지는 주제별 표·리스트로 관련 페이지를 묶는 navigation hub다.
+- `wiki/synthesis/` — comparisons, analyses, cross-cutting themes. **LYT MOC pattern (linking hub)** — synthesis pages are navigation hubs that group related pages with topic-based tables and lists.
 
 Special files:
 
 - `index.md` — catalog of every wiki page, organized by category. Update on every ingest.
 - `log.md` — append-only chronological record. Never edit existing entries.
 
-## Scaffold (자가 초기화)
+## Scaffold (self-initialization)
 
-이 vault에 다음 중 하나라도 없으면, 첫 ingest/query/lint 작업을 시작하기 전에 자동으로 생성한다.
+If any of the following are missing in this vault, create them automatically before starting the first ingest/query/lint operation.
 
-필수 디렉토리:
+Required directories:
 
 - `raw/`
 - `wiki/sources/`
@@ -33,12 +33,12 @@ Special files:
 - `wiki/synthesis/`
 - `output/`
 
-필수 파일:
+Required files:
 
-- `index.md` — 4개 카테고리 헤더(`## Sources`, `## Entities`, `## Concepts`, `## Synthesis`)만 가진 빈 카탈로그.
-- `log.md` — `# Log` 헤더만.
+- `index.md` — empty catalog containing only the four category headers (`## Sources`, `## Entities`, `## Concepts`, `## Synthesis`).
+- `log.md` — only the `# Log` header.
 
-자동 생성 후 사용자에게 "스캐폴드 완료. 무엇을 ingest할까요?"로 안내한다.
+After auto-generation, prompt the user with "Scaffold complete. What would you like to ingest?"
 
 ## Operations
 
@@ -63,7 +63,7 @@ When I ask a question:
 1. Read `index.md` to find relevant pages.
 2. Read those pages.
 3. Answer with `[[wikilink]]` citations.
-4. If the answer is valuable (a comparison, an analysis, a new connection), offer to save it to `wiki/synthesis/`. synthesis 페이지는 LYT MOC 패턴(헤더 + `[[wikilink]]` 리스트)으로 관련 페이지를 묶는다.
+4. If the answer is valuable (a comparison, an analysis, a new connection), offer to save it to `wiki/synthesis/`. Synthesis pages group related pages using the LYT MOC pattern (headers + `[[wikilink]]` lists).
 5. If saved, update `index.md` and append to `log.md`: `## [YYYY-MM-DD] query | <Title>`.
 
 ### Lint
@@ -100,7 +100,7 @@ Wiki pages are written in the user's preferred language. Default to the language
 
 One line per page under category headers (`## Sources`, `## Entities`, `## Concepts`, `## Synthesis`):
 
-```
+```text
 - [[Page Title]] — one-line summary (≤120 chars)
 ```
 
@@ -108,7 +108,7 @@ One line per page under category headers (`## Sources`, `## Entities`, `## Conce
 
 Each entry begins with `## [YYYY-MM-DD] <op> | <Title>` followed by a one-line description. The consistent prefix makes the log grep-parseable:
 
-```
+```bash
 grep "^## \[" log.md | tail -5
 ```
 
@@ -124,5 +124,5 @@ grep "^## \[" log.md | tail -5
 8. Source pages stay factual. Interpretation goes in concept and synthesis pages.
 9. When I ask a question, search the wiki first. Only fall back to `raw/` if the wiki doesn't have the answer.
 10. Prefer updating existing pages over creating new ones.
-11. 페이지는 evolve·accumulate한다. 새 정보가 들어오면 누적·진화시킨다. 과거 사실은 source 명기 후 보존한다 (=Evergreen 원칙).
-12. 폴더는 2-level depth 초과 금지 (예: `wiki/entities/` OK, `wiki/entities/people/researchers/` 금지).
+11. Pages evolve and accumulate. When new information arrives, integrate and evolve the page; preserve past facts with their source attributed (Evergreen principle).
+12. No folder nesting beyond 2 levels (e.g., `wiki/entities/` OK; `wiki/entities/people/researchers/` not allowed).
