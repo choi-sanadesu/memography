@@ -1,0 +1,8 @@
+{
+  "name": "bookkeeper",
+  "version": "0.1.0",
+  "description": "Personal knowledge wiki builder — ingests sources, maintains a wikilinked vault, and answers queries.",
+  "author": {
+    "name": "choi-sanadesu"
+  }
+}
